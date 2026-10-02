@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18222D">
+<title>Motor Flip</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --bg:#E9EDF0; --card:#FFFFFF; --ink:#18222D; --muted:#5E6B78; --line:#D3D9DF;
+  --amber:#E0A100; --amber-ink:#3A2A00; --green:#1E7A46; --red:#B3261E;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45}
+.num{font-variant-numeric:tabular-nums}
+.app{max-width:640px;margin:0 auto;padding:0 14px 110px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ink);color:#fff;margin:0 -14px 14px;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.top h1{font-size:1.15rem;margin:0;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .logo{width:26px;height:26px;border-radius:6px;background:var(--amber);display:grid;place-items:center;color:var(--ink);font-weight:800;font-size:.85rem}
+.icon-btn{background:none;border:0;color:#fff;font:inherit;font-size:.95rem;padding:6px 8px;cursor:pointer;border-radius:6px}
+
+/* summary */
+.summary{background:var(--ink);color:#fff;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin-bottom:16px}
+.summary .big{grid-column:1/-1}
+.summary .lbl{font-size:.8rem;color:#AEB9C4}
+.summary .val{font-size:1.15rem;font-weight:700}
+.summary .big .val{font-size:1.9rem;color:var(--amber)}
+.pos{color:var(--green)} .neg{color:var(--red)}
+.summary .pos{color:#6FD39A} .summary .neg{color:#FF8A80}
+
+/* filters */
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.seg{display:flex;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;font:inherit;font-size:.9rem;padding:6px 12px;border-radius:999px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--ink);color:#fff}
+.search{flex:1;min-width:140px;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font:inherit;background:#fff}
+
+/* bike list */
+.list{display:flex;flex-direction:column;gap:10px}
+.bike{display:flex;gap:12px;background:var(--card);border-radius:12px;padding:10px;text-decoration:none;color:inherit;border:1px solid var(--line)}
+.thumb{width:92px;height:72px;border-radius:8px;background:#CBD3DA center/cover no-repeat;flex-shrink:0;display:grid;place-items:center;color:var(--muted);font-size:1.6rem}
+.bike .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bike .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bike .meta{font-size:.85rem;color:var(--muted)}
+.bike .row{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto}
+.tag{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px}
+.tag.hand{background:#FFF3CC;color:var(--amber-ink)}
+.tag.sold{background:#DDF1E5;color:var(--green)}
+.empty{text-align:center;color:var(--muted);padding:40px 16px}
+.empty b{display:block;color:var(--ink);font-size:1.1rem;margin-bottom:6px}
+
+/* fab */
+.fab{position:fixed;right:max(18px,calc(50% - 302px));bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--amber);color:var(--ink);border:0;border-radius:999px;padding:15px 22px;font:inherit;font-weight:700;font-size:1rem;box-shadow:0 6px 16px rgba(24,34,45,.3);cursor:pointer;text-decoration:none}
+
+/* cards/sections */
+.section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.section h2{font-size:1rem;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+.photos{display:flex;gap:8px;overflow-x:auto;margin:0 -14px 12px;padding:0 14px;scroll-snap-type:x mandatory}
+.photos img{height:220px;max-width:88%;border-radius:12px;object-fit:cover;scroll-snap-align:start;flex-shrink:0;background:#CBD3DA}
+.nophoto{height:140px;border-radius:12px;background:#D7DDE2;display:grid;place-items:center;color:var(--muted);margin-bottom:12px}
+.title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
+.title-row h2{font-size:1.35rem;margin:0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat .lbl{font-size:.8rem;color:var(--muted)}
+.stat .val{font-weight:700;font-size:1.05rem}
+.stat.wide{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+.stat.wide .val{font-size:1.5rem}
+.pre{white-space:pre-wrap;margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+
+.exp{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.exp:last-child{border-bottom:0}
+.exp .t{font-weight:600}
+.del{background:none;border:0;color:var(--red);font:inherit;font-size:.85rem;cursor:pointer;padding:4px 6px}
+
+/* forms */
+form{display:flex;flex-direction:column;gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:.88rem;font-weight:600}
+input,textarea,select{font:inherit;font-weight:400;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%}
+textarea{min-height:80px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{font:inherit;font-weight:700;padding:12px 16px;border-radius:10px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;text-align:center;text-decoration:none}
+.btn.amber{background:var(--amber);border-color:var(--amber);color:var(--ink)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.danger{background:transparent;color:var(--red);border-color:var(--red)}
+.btn.sm{padding:7px 12px;font-size:.88rem;border-radius:8px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn{flex:1}
+.pics{display:flex;gap:8px;flex-wrap:wrap}
+.pic{position:relative;width:84px;height:84px}
+.pic img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.pic button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:var(--red);color:#fff;cursor:pointer;font-size:.9rem;line-height:1}
+.addpic{width:84px;height:84px;border:2px dashed var(--line);border-radius:8px;display:grid;place-items:center;color:var(--muted);cursor:pointer;font-size:.8rem;text-align:center;background:#fff}
+.hint{font-size:.85rem;color:var(--muted);font-weight:400}
+.preview{background:#F4F6F8;border-radius:8px;padding:10px 12px;font-size:.95rem}
+
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-size:.9rem;z-index:20}
+@media (max-width:380px){.grid2{grid-template-columns:1fr}.summary .big .val{font-size:1.6rem}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<input type="file" id="importFile" accept="application/json" hidden>
+
+<script>
+/* ================= storage (IndexedDB, works offline) ================= */
+const DB_NAME='motorflip', STORE='kv';
+let db=null, memory={};
+function openDB(){
+  return new Promise(res=>{
+    try{
+      const r=indexedDB.open(DB_NAME,1);
+      r.onupgradeneeded=()=>r.result.createObjectStore(STORE);
+      r.onsuccess=()=>{db=r.result;res()};
+      r.onerror=()=>res();
+    }catch(e){res()}
+  });
+}
+function dbGet(k){
+  if(!db) return Promise.resolve(memory[k]);
+  return new Promise(res=>{try{const q=db.transaction(STORE).objectStore(STORE).get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(undefined)}catch(e){res(undefined)}});
+}
+function dbSet(k,v){
+  memory[k]=v; if(!db) return Promise.resolve();
+  return new Promise(res=>{try{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(v,k);t.oncomplete=res;t.onerror=res}catch(e){res()}});
+}
+
+let bikes=[], capital=[];
+async function load(){ await openDB(); bikes=(await dbGet('bikes'))||[]; capital=(await dbGet('capital'))||[]; }
+const saveBikes=()=>dbSet('bikes',bikes);
+const saveCapital=()=>dbSet('capital',capital);
+
+/* ================= helpers ================= */
+const peso=n=>'₱'+(Math.round(n||0)).toLocaleString('en-PH');
+const signed=n=>(n>0?'+':n<0?'−':'')+peso(Math.abs(n));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>d?new Date(d+'T00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'';
+const num=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?0:n};
+const expTotal=b=>b.expenses.reduce((s,e)=>s+e.amount,0);
+const cost=b=>b.buyPrice+expTotal(b);
+const profit=b=>b.sold?b.sold.price-cost(b):null;
+const daysBetween=(a,b)=>Math.max(0,Math.round((new Date(b)-new Date(a))/864e5));
+const cls=n=>n>0?'pos':n<0?'neg':'';
+const $=s=>document.querySelector(s);
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1800)}
+
+function totals(){
+  const capIn=capital.filter(c=>c.type==='in').reduce((s,c)=>s+c.amount,0);
+  const capOut=capital.filter(c=>c.type==='out').reduce((s,c)=>s+c.amount,0);
+  const spent=bikes.reduce((s,b)=>s+cost(b),0);
+  const sales=bikes.filter(b=>b.sold).reduce((s,b)=>s+b.sold.price,0);
+  const stock=bikes.filter(b=>!b.sold).reduce((s,b)=>s+cost(b),0);
+  const sold=bikes.filter(b=>b.sold);
+  const totalProfit=sold.reduce((s,b)=>s+profit(b),0);
+  const ym=today().slice(0,7);
+  const monthProfit=sold.filter(b=>(b.sold.date||'').startsWith(ym)).reduce((s,b)=>s+profit(b),0);
+  const cash=capIn-capOut-spent+sales;
+  return {capIn,capOut,cash,stock,totalProfit,monthProfit,worth:cash+stock,onHand:bikes.length-sold.length,soldCount:sold.length};
+}
+
+/* image -> compressed JPEG data URL */
+function compress(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>{const img=new Image();img.onload=()=>{
+      const max=1100, k=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL('image/jpeg',0.75));
+    };img.onerror=rej;img.src=r.result};
+    r.onerror=rej;r.readAsDataURL(file);
+  });
+}
+
+/* ================= views ================= */
+let filter='all', query='';
+function topBar(title,back){
+  return `<div class="top">${back?`<a class="icon-btn" href="${back}" aria-label="Back">← Back</a>`:'<span class="logo">MF</span>'}<h1>${esc(title)}</h1>${back?'':'<a class="icon-btn" href="#/capital">Capital</a><button class="icon-btn" id="menuBtn">Backup</button>'}</div>`;
+}
+
+function viewHome(){
+  const t=totals();
+  let list=bikes.slice().sort((a,b)=>(!!a.sold-!!b.sold)||(b.buyDate||'').localeCompare(a.buyDate||''));
+  if(filter==='hand') list=list.filter(b=>!b.sold);
+  if(filter==='sold') list=list.filter(b=>b.sold);
+  if(query) list=list.filter(b=>(b.name+' '+b.plate+' '+b.desc).toLowerCase().includes(query.toLowerCase()));
+
+  const items=list.map(b=>{
+    const p=profit(b);
+    return `<a class="bike" href="#/bike/${b.id}">
+      <div class="thumb" style="${b.photos[0]?`background-image:url(${b.photos[0]})`:''}">${b.photos[0]?'':'🏍'}</div>
+      <div class="info">
+        <div class="nm">${esc(b.name)}</div>
+        <div class="meta">${b.sold?'Sold '+fmtDate(b.sold.date):'Bought '+fmtDate(b.buyDate)}</div>
+        <div class="row"><span class="tag ${b.sold?'sold':'hand'}">${b.sold?'Sold':'On hand'}</span>
+        <span class="num ${b.sold?cls(p):''}" style="font-weight:700">${b.sold?signed(p):peso(cost(b))+'<span class="muted small"> cost</span>'}</span></div>
+      </div></a>`;
+  }).join('');
+
+  $('#app').innerHTML=`${topBar('Motor Flip')}
+  <div class="summary">
+    <div class="big"><div class="lbl">Total profit from sold motorcycles</div><div class="val num">${signed(t.totalProfit)}</div></div>
+    <div><div class="lbl">Cash on hand</div><div class="val num">${peso(t.cash)}</div></div>
+    <div><div class="lbl">In stock (at cost)</div><div class="val num">${peso(t.stock)}</div></div>
+    <div><div class="lbl">Profit this month</div><div class="val num ${cls(t.monthProfit)}">${signed(t.monthProfit)}</div></div>
+    <div><div class="lbl">Business worth</div><div class="val num">${peso(t.worth)}</div></div>
+  </div>
+  <div class="filters">
+    <div class="seg">${[['all','All '+bikes.length],['hand','On hand '+t.onHand],['sold','Sold '+t.soldCount]].map(([k,l])=>`<button data-f="${k}" class="${filter===k?'on':''}">${l}</button>`).join('')}</div>
+    <input class="search" id="q" placeholder="Search name or plate" value="${esc(query)}">
+  </div>
+  <div class="list">${items||(bikes.length?'<div class="empty">No motorcycles match.</div>':`<div class="empty"><b>No motorcycles yet</b>Add your first motorcycle to start tracking costs and profit.${capital.length?'':'<br><br>Tip: set your starting money in <a href="#/capital">Capital</a> so cash on hand is accurate.'}</div>`)}</div>
+  <a class="fab" href="#/new">+ Add motorcycle</a>`;
+
+  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{filter=b.dataset.f;viewHome()});
+  const q=$('#q'); q.oninput=()=>{query=q.value;const pos=q.selectionStart;viewHome();const n=$('#q');n.focus();n.setSelectionRange(pos,pos)};
+  $('#menuBtn').onclick=backupMenu;
+}
+
+function viewBike(id){
+  const b=bikes.find(x=>x.id===id); if(!b) return go('#/');
+  const p=profit(b);
+  const roi=b.sold&&cost(b)?(p/cost(b)*100):null;
+  const exps=b.expenses.slice().sort((a,c)=>(c.date||'').localeCompare(a.date||''));
+  const breakEven=cost(b);
+
+  $('#app').innerHTML=`${topBar(b.name,'#/')}
+  ${b.photos.length?`<div class="photos">${b.photos.map(s=>`<img src="${s}" alt="Photo of ${esc(b.name)}">`).join('')}</div>`:'<div class="nophoto">No photos</div>'}
+  <div class="section">
+    <div class="title-row"><h2>${esc(b.name)}</h2><span class="tag ${b.sold?'sold':'hand'}">${b.sold?'Sold':'On hand'}</span></div>
+    <div class="muted small" style="margin-bottom:12px">${[b.plate&&'Plate '+esc(b.plate), b.mileage&&esc(b.mileage)+' km', 'Bought '+fmtDate(b.buyDate), b.sold&&('held '+daysBetween(b.buyDate,b.sold.date)+' days')].filter(Boolean).join(' · ')}</div>
+    <div class="stats">
+      <div class="stat"><div class="lbl">Bought for</div><div class="val num">${peso(b.buyPrice)}</div></div>
+      <div class="stat"><div class="lbl">Expenses</div><div class="val num">${peso(expTotal(b))}</div></div>
+      <div class="stat"><div class="lbl">Total cost</div><div class="val num">${peso(cost(b))}</div></div>
+      <div class="stat"><div class="lbl">${b.sold?'Sold for':'Break-even price'}</div><div class="val num">${peso(b.sold?b.sold.price:breakEven)}</div></div>
+      ${b.sold?`<div class="stat wide"><div class="lbl">Profit${roi!==null?` · ${roi.toFixed(1)}% return`:''}</div><div class="val num ${cls(p)}">${signed(p)}</div></div>`:''}
+    </div>
+  </div>
+
+  ${b.desc?`<div class="section"><h2>Description</h2><p class="pre">${esc(b.desc)}</p></div>`:''}
+  ${b.history?`<div class="section"><h2>History</h2><p class="pre">${esc(b.history)}</p></div>`:''}
+
+  <div class="section">
+    <h2>Expenses <span class="num muted small">${peso(expTotal(b))}</span></h2>
+    ${exps.length?exps.map(e=>`<div class="exp"><div><div class="t">${esc(e.type)}${e.note?` <span class="muted" style="font-weight:400">— ${esc(e.note)}</span>`:''}</div><div class="muted small">${fmtDate(e.date)}</div></div><div style="display:flex;align-items:center;gap:4px"><span class="num" style="font-weight:700">${peso(e.amount)}</span><button class="del" data-del="${e.id}" aria-label="Delete expense">Delete</button></div></div>`).join(''):'<p class="muted small" style="margin:0 0 10px">No expenses yet. Add gas, repairs, parts or papers here.</p>'}
+    <form id="expForm" style="margin-top:12px">
+      <div class="grid2">
+        <label>Type<select name="type"><option>Gas</option><option>Repair</option><option>Parts</option><option>Papers / Registration</option><option>Cleaning / Detailing</option><option>Transport</option><option>Other</option></select></label>
+        <label>Amount (₱)<input name="amount" inputmode="decimal" required placeholder="0"></label>
+      </div>
+      <div class="grid2">
+        <label>Date<input type="date" name="date" value="${today()}"></label>
+        <label>Note<input name="note" placeholder="e.g. new chain"></label>
+      </div>
+      <button class="btn">Add expense</button>
+    </form>
+  </div>
+
+  <div class="section">
+    ${b.sold?`<h2>Sale</h2>
+      <p style="margin:0 0 10px">Sold on <b>${fmtDate(b.sold.date)}</b> for <b class="num">${peso(b.sold.price)}</b>${b.sold.note?`<br><span class="muted">${esc(b.sold.note)}</span>`:''}</p>
+      <button class="btn ghost sm" id="undoSale">Mark as not sold</button>`
+    :`<h2>Sell this motorcycle</h2>
+      <form id="sellForm">
+        <div class="grid2">
+          <label>Selling price (₱)<input name="price" id="sellPrice" inputmode="decimal" required placeholder="0"></label>
+          <label>Date sold<input type="date" name="date" value="${today()}"></label>
+        </div>
+        <label>Buyer / note<input name="note" placeholder="optional"></label>
+        <div class="preview num" id="sellPreview">Enter a price to see your profit.</div>
+        <button class="btn amber">Mark as sold</button>
+      </form>`}
+  </div>
+
+  <div class="btns"><a class="btn ghost" href="#/edit/${b.id}">Edit details</a><button class="btn danger" id="delBike">Delete</button></div>`;
+
+  $('#expForm').onsubmit=async e=>{
+    e.preventDefault();const f=new FormData(e.target);const amount=num(f.get('amount'));
+    if(amount<=0) return toast('Enter an amount above 0');
+    b.expenses.push({id:uid(),type:f.get('type'),amount,date:f.get('date')||today(),note:f.get('note').trim()});
+    await saveBikes();toast('Expense added');viewBike(id);
+  };
+  document.querySelectorAll('[data-del]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Delete this expense?'))return;
+    b.expenses=b.expenses.filter(e=>e.id!==x.dataset.del);await saveBikes();viewBike(id);
+  });
+  if(b.sold){
+    $('#undoSale').onclick=async()=>{if(!confirm('Mark as not sold? The sale record will be removed.'))return;b.sold=null;await saveBikes();viewBike(id)};
+  }else{
+    const sp=$('#sellPrice');
+    sp.oninput=()=>{const v=num(sp.value);const pr=v-cost(b);$('#sellPreview').innerHTML=v?`Profit if sold at ${peso(v)}: <b class="${cls(pr)}">${signed(pr)}</b>`:'Enter a price to see your profit.'};
+    $('#sellForm').onsubmit=async e=>{
+      e.preventDefault();const f=new FormData(e.target);const price=num(f.get('price'));
+      if(price<=0) return toast('Enter the selling price');
+      b.sold={price,date:f.get('date')||today(),note:f.get('note').trim()};
+      await saveBikes();toast('Marked as sold');viewBike(id);
+    };
+  }
+  $('#delBike').onclick=async()=>{
+    if(!confirm(`Delete ${b.name} and all its expenses and photos?`))return;
+    bikes=bikes.filter(x=>x.id!==id);await saveBikes();toast('Motorcycle deleted');go('#/');
+  };
+}
+
+function viewForm(id){
+  const existing=id?bikes.find(x=>x.id===id):null;
+  if(id&&!existing) return go('#/');
+  const b=existing?{...existing,photos:existing.photos.slice()}:{name:'',desc:'',history:'',plate:'',mileage:'',buyDate:today(),buyPrice:'',photos:[]};
+  const draw=()=>{
+    $('#app').innerHTML=`${topBar(existing?'Edit motorcycle':'Add motorcycle',existing?'#/bike/'+id:'#/')}
+    <div class="section"><form id="bikeForm">
+      <label>Motorcycle name / model<input name="name" required value="${esc(b.name)}" placeholder="e.g. Honda Click 125i 2021"></label>
+      <div class="grid2">
+        <label>Buying price (₱)<input name="buyPrice" inputmode="decimal" required value="${b.buyPrice===''?'':b.buyPrice}" placeholder="0"></label>
+        <label>Date bought<input type="date" name="buyDate" value="${esc(b.buyDate)}"></label>
+      </div>
+      <div class="grid2">
+        <label>Plate no. <input name="plate" value="${esc(b.plate)}" placeholder="optional"></label>
+        <label>Mileage (km)<input name="mileage" inputmode="numeric" value="${esc(b.mileage)}" placeholder="optional"></label>
+      </div>
+      <label>Description<textarea name="desc" placeholder="Color, condition, accessories…">${esc(b.desc)}</textarea></label>
+      <label>History<textarea name="history" placeholder="Previous owners, where you bought it, past repairs, OR/CR status…">${esc(b.history)}</textarea></label>
+      <div><div style="font-size:.88rem;font-weight:600;margin-bottom:6px">Photos <span class="hint">(up to 8)</span></div>
+        <div class="pics">${b.photos.map((s,i)=>`<div class="pic"><img src="${s}" alt=""><button type="button" data-rm="${i}" aria-label="Remove photo">×</button></div>`).join('')}
+        ${b.photos.length<8?`<label class="addpic">+ Add photo<input type="file" accept="image/*" multiple id="picIn" hidden></label>`:''}</div>
+      </div>
+      <button class="btn amber">${existing?'Save changes':'Add motorcycle'}</button>
+    </form></div>`;
+    const form=$('#bikeForm');
+    const keep=()=>{const f=new FormData(form);['name','desc','history','plate','mileage','buyDate'].forEach(k=>b[k]=f.get(k));b.buyPrice=f.get('buyPrice')};
+    document.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{keep();b.photos.splice(+x.dataset.rm,1);draw()});
+    const pi=$('#picIn');
+    if(pi) pi.onchange=async()=>{
+      keep();
+      for(const file of [...pi.files].slice(0,8-b.photos.length)){try{b.photos.push(await compress(file))}catch(e){toast('Could not read one photo')}}
+      draw();
+    };
+    form.onsubmit=async e=>{
+      e.preventDefault();keep();
+      const data={name:b.name.trim(),desc:b.desc.trim(),history:b.history.trim(),plate:b.plate.trim(),mileage:b.mileage.trim(),buyDate:b.buyDate||today(),buyPrice:num(b.buyPrice),photos:b.photos};
+      if(existing){Object.assign(existing,data);await saveBikes();toast('Changes saved');go('#/bike/'+id)}
+      else{const nb={id:uid(),...data,expenses:[],sold:null};bikes.push(nb);await saveBikes();toast('Motorcycle added');go('#/bike/'+nb.id)}
+    };
+  };
+  draw();
+}
+
+function viewCapital(){
+  const t=totals();
+  const list=capital.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  $('#app').innerHTML=`${topBar('Capital','#/')}
+  <div class="summary">
+    <div class="big"><div class="lbl">Cash on hand</div><div class="val num">${peso(t.cash)}</div></div>
+    <div><div class="lbl">Capital put in</div><div class="val num">${peso(t.capIn)}</div></div>
+    <div><div class="lbl">Withdrawn</div><div class="val num">${peso(t.capOut)}</div></div>
+    <div><div class="lbl">In stock (at cost)</div><div class="val num">${peso(t.stock)}</div></div>
+    <div><div class="lbl">Total profit</div><div class="val num ${cls(t.totalProfit)}">${signed(t.totalProfit)}</div></div>
+  </div>
+  <p class="muted small" style="margin:-4px 2px 14px">Cash on hand = capital put in − withdrawn − money spent on motorcycles and expenses + sales.</p>
+  <div class="section"><h2>Add or withdraw capital</h2>
+    <form id="capForm">
+      <div class="seg" style="align-self:flex-start"><button type="button" data-t="in" class="on">Add capital</button><button type="button" data-t="out">Withdraw</button></div>
+      <div class="grid2">
+        <label>Amount (₱)<input name="amount" inputmode="decimal" required placeholder="0"></label>
+        <label>Date<input type="date" name="date" value="${today()}"></label>
+      </div>
+      <label>Note<input name="note" placeholder="e.g. starting capital, personal use"></label>
+      <button class="btn" id="capSubmit">Add capital</button>
+    </form>
+  </div>
+  <div class="section"><h2>History</h2>
+    ${list.length?list.map(c=>`<div class="exp"><div><div class="t">${c.type==='in'?'Added':'Withdrawn'}${c.note?` <span class="muted" style="font-weight:400">— ${esc(c.note)}</span>`:''}</div><div class="muted small">${fmtDate(c.date)}</div></div><div style="display:flex;align-items:center;gap:4px"><span class="num ${c.type==='in'?'pos':'neg'}" style="font-weight:700">${c.type==='in'?'+':'−'}${peso(c.amount)}</span><button class="del" data-cdel="${c.id}">Delete</button></div></div>`).join(''):'<p class="muted small" style="margin:0">No capital entries yet. Add your starting money first.</p>'}
+  </div>`;
+  let type='in';
+  document.querySelectorAll('[data-t]').forEach(x=>x.onclick=()=>{type=x.dataset.t;document.querySelectorAll('[data-t]').forEach(y=>y.classList.toggle('on',y===x));$('#capSubmit').textContent=type==='in'?'Add capital':'Withdraw'});
+  $('#capForm').onsubmit=async e=>{
+    e.preventDefault();const f=new FormData(e.target);const amount=num(f.get('amount'));
+    if(amount<=0) return toast('Enter an amount above 0');
+    capital.push({id:uid(),type,amount,date:f.get('date')||today(),note:f.get('note').trim()});
+    await saveCapital();toast(type==='in'?'Capital added':'Withdrawal recorded');viewCapital();
+  };
+  document.querySelectorAll('[data-cdel]').forEach(x=>x.onclick=async()=>{
+    if(!confirm('Delete this entry?'))return;capital=capital.filter(c=>c.id!==x.dataset.cdel);await saveCapital();viewCapital();
+  });
+}
+
+/* ================= backup ================= */
+function backupMenu(){
+  const choice=prompt('Backup your data:\n1 = Save backup file\n2 = Restore from backup file\n\nType 1 or 2');
+  if(choice==='1'){
+    const blob=new Blob([JSON.stringify({app:'motorflip',version:1,saved:new Date().toISOString(),bikes,capital})],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`motorflip-backup-${today()}.json`;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  } else if(choice==='2'){ $('#importFile').click(); }
+}
+$('#importFile').onchange=async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  try{
+    const d=JSON.parse(await file.text());
+    if(d.app!=='motorflip'||!Array.isArray(d.bikes)) throw 0;
+    if(!confirm(`Restore ${d.bikes.length} motorcycles from this backup? Your current data will be replaced.`)) return;
+    bikes=d.bikes;capital=d.capital||[];await saveBikes();await saveCapital();toast('Backup restored');route();
+  }catch(err){toast('That file is not a Motor Flip backup')}
+  e.target.value='';
+};
+
+/* ================= routing ================= */
+function go(h){location.hash=h}
+function route(){
+  const h=location.hash.replace(/^#/,'')||'/';
+  const [,a,bId]=h.split('/');
+  window.scrollTo(0,0);
+  if(a==='bike') viewBike(bId);
+  else if(a==='edit') viewForm(bId);
+  else if(a==='new') viewForm(null);
+  else if(a==='capital') viewCapital();
+  else viewHome();
+}
+window.addEventListener('hashchange',route);
+load().then(route);
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
+</script>
+</body>
+</html>
